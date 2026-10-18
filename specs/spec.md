@@ -1,12 +1,10 @@
 # Encurtador de links
 
 ## Problema
-Links longos quebram em mensagens, e-mails e materiais impressos, e não dá para
-medir quantas pessoas clicaram neles.
+Links longos quebram em mensagens, e-mails e materiais impressos, e não dá para medir quantas pessoas clicaram neles.
 
 ## Objetivo
-Permitir que uma pessoa transforme uma URL longa em um link curto, compartilhe
-esse link e acompanhe quantos acessos ele recebeu.
+Permitir que uma pessoa transforme uma URL longa em um link curto, compartilhe esse link e acompanhe quantos acessos ele recebeu.
 
 ## Usuários
 - Criador do link: gera links curtos e acompanha os acessos
@@ -20,36 +18,26 @@ esse link e acompanhe quantos acessos ele recebeu.
 
 ## Requisitos funcionais
 - RF-01: o sistema recebe uma URL de destino e devolve um link curto
-- RF-02: o código do link tem 7 caracteres gerados automaticamente, usando apenas
-  letras maiúsculas de A a Z e números de 1 a 9
-- RF-03: o criador pode informar um código próprio de 4 a 20 caracteres, usando
-  apenas letras maiúsculas de A a Z e números de 1 a 9, sem espaços
+- RF-02: o código do link tem 7 caracteres gerados automaticamente, usando apenas letras maiúsculas de A a Z e números de 1 a 9
+- RF-03: o criador pode informar um código próprio de 4 a 20 caracteres, usando apenas letras maiúsculas de A a Z e números de 1 a 9, sem espaços
 - RF-04: acessar um link curto existente redireciona para a URL de destino
-- RF-05: cada acesso a um link válido incrementa o contador daquele link,
-  incluindo acessos repetidos e automatizados
-- RF-06: o criador pode definir uma data de expiração para o link; a data e o
-  limite de validade são interpretados em UTC, e o link permanece válido até o
-  fim da data informada
-- RF-07: o sistema devolve o total de acessos de um link a qualquer pessoa que
-  conheça seu código
-- RF-08: os links e seus dados devem ser persistidos em banco de dados para que
-  não se percam após reinício da aplicação
+- RF-05: cada acesso a um link válido incrementa o contador daquele link, incluindo acessos repetidos e automatizados
+- RF-06: o criador pode definir uma data de expiração para o link; a data e o limite de validade são interpretados em UTC, e o link permanece válido até o fim da data informada
+- RF-07: qualquer pessoa que conheça o código pode consultar o total de acessos do link
+- RF-08: os links e seus dados devem ser persistidos em banco de dados para que não se percam após reinício da aplicação
+- RF-09: deve existir um endpoint protegido para consultar informações adicionais sobre um link; o conjunto exato dessas informações e o contrato de acesso precisam ser definidos antes da implementação (decisão pendente, sem ampliar o escopo de implementação até aprovação).
 
 ## Regras de negócio
 - RN-01: o código do link é único em todo o sistema
 - RN-02: a URL de destino precisa usar http ou https e ser publicamente acessível
 - RN-03: link expirado não redireciona e não conta acesso
 - RN-04: o contador de acessos nunca diminui
-- RN-05: códigos automáticos e personalizados aceitam somente A-Z maiúsculo e
-  os dígitos de 1 a 9; o dígito 0, minúsculas, espaços e caracteres especiais
-  não são permitidos
-- RN-06: se um código gerado automaticamente já estiver em uso, o sistema tenta
-  gerar outro código
+- RN-05: códigos automáticos e personalizados aceitam somente A-Z maiúsculo e os dígitos de 1 a 9; o dígito 0, minúsculas, espaços e caracteres especiais não são permitidos
+- RN-06: se um código gerado automaticamente já estiver em uso, o sistema tenta gerar outro código
 
 ## Casos de borda
 - Código já em uso: recusar a criação e explicar o motivo
-- Código gerado automaticamente já em uso: gerar outro código e tentar
-  novamente
+- Código gerado automaticamente já em uso: gerar outro código e tentar novamente
 - Código inexistente no acesso: responder que o link não existe
 - URL de destino com mais de 2048 caracteres: recusar
 - URL de destino não publicamente acessível: recusar
@@ -68,3 +56,5 @@ esse link e acompanhe quantos acessos ele recebeu.
 - Um link ainda válido funciona até o fim de sua data de expiração em UTC
 - Qualquer pessoa que conheça o código pode consultar o total de acessos
 - Após reiniciar a aplicação, os links persistidos no banco continuam funcionando
+- Os códigos automáticos e personalizados aceitam somente caracteres A-Z e 1-9, respeitando os comprimentos definidos em RF-02 e RF-03
+- O endpoint protegido de informações adicionais só poderá ser implementado após a definição e aprovação do conteúdo adicional e do contrato de acesso de RF-09
