@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LinkShortener.Infrastructure.Persistence;
 
-public sealed class LinkRepository(LinkShortenerDbContext dbContext) : ILinkRepository
+public sealed class LinkRepository(
+    LinkShortenerDbContext dbContext,
+    LinkRedirectCache redirectCache) : ILinkRepository
 {
     public Task<bool> CodeExistsAsync(string code, CancellationToken cancellationToken)
     {
@@ -36,10 +38,7 @@ public sealed class LinkRepository(LinkShortenerDbContext dbContext) : ILinkRepo
         DateTime accessedAtUtc,
         CancellationToken cancellationToken)
     {
-        return dbContext.Links.SingleOrDefaultAsync(
-            link => link.Code == code
-                && (link.ExpiresAtUtc == null || link.ExpiresAtUtc > accessedAtUtc),
-            cancellationToken);
+        return FindByCodeIfNotExpiredCoreAsync(code, accessedAtUtc, cancellationToken);
     }
 
     public async Task<long?> GetAccessCountByCodeAsync(
@@ -58,6 +57,7 @@ public sealed class LinkRepository(LinkShortenerDbContext dbContext) : ILinkRepo
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
+            redirectCache.Remove(link.Code);
         }
         catch (DbUpdateException exception) when (IsCodeUniqueConstraintViolation(exception))
         {
@@ -73,5 +73,35 @@ public sealed class LinkRepository(LinkShortenerDbContext dbContext) : ILinkRepo
             SqliteErrorCode: 19,
             SqliteExtendedErrorCode: 2067
         };
+    }
+
+    private async Task<Link?> FindByCodeIfNotExpiredCoreAsync(
+        string code,
+        DateTime accessedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (redirectCache.FindValid(code, accessedAtUtc) is { } cachedRedirect)
+        {
+            return new Link
+            {
+                Code = code,
+                TargetUrl = cachedRedirect.TargetUrl,
+                ExpiresAtUtc = cachedRedirect.ExpiresAtUtc
+            };
+        }
+
+        var link = await dbContext.Links.SingleOrDefaultAsync(
+            candidate => candidate.Code == code
+                && (candidate.ExpiresAtUtc == null || candidate.ExpiresAtUtc > accessedAtUtc),
+            cancellationToken);
+        if (link is null)
+        {
+            return null;
+        }
+
+        redirectCache.Set(code, link.TargetUrl, link.ExpiresAtUtc);
+        return link;
     }
 }

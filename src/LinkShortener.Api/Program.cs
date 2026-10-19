@@ -10,6 +10,7 @@ var connectionString = builder.Configuration.GetConnectionString("LinkShortener"
 
 builder.Services.AddDbContext<LinkShortenerDbContext>(options =>
     options.UseSqlite(connectionString));
+builder.Services.AddSingleton<LinkRedirectCache>();
 builder.Services.AddSingleton<IHostAddressResolver, SystemHostAddressResolver>();
 builder.Services.AddSingleton<IUrlAccessibilityChecker, PublicUrlAccessibilityChecker>();
 builder.Services.AddSingleton<LinkCodeGenerator>();

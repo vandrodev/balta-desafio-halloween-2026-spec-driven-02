@@ -101,4 +101,71 @@ public sealed class LinkRedirectEndpointTests
             }
         }
     }
+
+    [Fact]
+    public async Task GetCode_DoesNotUseCachedDestinationAfterLinkExpires()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"linkshortener-{Guid.NewGuid():N}.db");
+        var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<DbContextOptions<LinkShortenerDbContext>>();
+                services.AddDbContext<LinkShortenerDbContext>(options =>
+                    options.UseSqlite($"Data Source={databasePath};Pooling=False"));
+            });
+        });
+
+        try
+        {
+            using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false
+            });
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<LinkShortenerDbContext>();
+                dbContext.Links.Add(new Link
+                {
+                    Code = "CACHED1",
+                    TargetUrl = "https://example.com/cached",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    ExpiresAtUtc = DateTime.UtcNow.AddMinutes(5)
+                });
+                await dbContext.SaveChangesAsync();
+            }
+
+            using var firstResponse = await client.GetAsync("/CACHED1");
+            Assert.Equal(HttpStatusCode.Found, firstResponse.StatusCode);
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<LinkShortenerDbContext>();
+                var link = await dbContext.Links.SingleAsync(candidate => candidate.Code == "CACHED1");
+                link.ExpiresAtUtc = DateTime.UtcNow.AddMinutes(-1);
+                await dbContext.SaveChangesAsync();
+            }
+
+            using var expiredResponse = await client.GetAsync("/CACHED1");
+            Assert.Equal(HttpStatusCode.Gone, expiredResponse.StatusCode);
+
+            using var verificationScope = factory.Services.CreateScope();
+            var verificationDbContext = verificationScope.ServiceProvider
+                .GetRequiredService<LinkShortenerDbContext>();
+            var accessCount = await verificationDbContext.Links
+                .Where(link => link.Code == "CACHED1")
+                .Select(link => link.AccessCount)
+                .SingleAsync();
+            Assert.Equal(1, accessCount);
+        }
+        finally
+        {
+            await factory.DisposeAsync();
+            if (File.Exists(databasePath))
+            {
+                File.Delete(databasePath);
+            }
+        }
+    }
 }

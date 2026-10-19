@@ -41,14 +41,20 @@ public sealed class LinkStatisticsEndpointTests
                 await dbContext.SaveChangesAsync();
             }
 
-            using var client = factory.CreateClient();
+            using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false
+            });
+            using var redirectResponse = await client.GetAsync("/STATS1");
+            Assert.Equal(HttpStatusCode.Found, redirectResponse.StatusCode);
+
             using var response = await client.GetAsync("/api/links/STATS1/stats");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
             var statistics = await response.Content.ReadFromJsonAsync<LinkStatisticsResponse>();
             Assert.NotNull(statistics);
-            Assert.Equal(17, statistics.AccessCount);
+            Assert.Equal(18, statistics.AccessCount);
         }
         finally
         {
