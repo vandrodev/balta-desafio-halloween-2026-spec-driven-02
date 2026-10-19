@@ -65,15 +65,27 @@ public sealed class LinkService(
         string code,
         CancellationToken cancellationToken = default)
     {
+        var accessedAtUtc = DateTime.UtcNow;
+        var accessCountIncremented = await linkRepository.TryIncrementAccessCountAsync(
+            code,
+            accessedAtUtc,
+            cancellationToken);
+
+        if (!accessCountIncremented)
+        {
+            var unavailableLink = await linkRepository.FindByCodeAsync(code, cancellationToken);
+            if (unavailableLink is null)
+            {
+                return LinkRedirectResult.NotFound();
+            }
+
+            return LinkRedirectResult.Expired();
+        }
+
         var link = await linkRepository.FindByCodeAsync(code, cancellationToken);
         if (link is null)
         {
             return LinkRedirectResult.NotFound();
-        }
-
-        if (link.ExpiresAtUtc is { } expiresAtUtc && expiresAtUtc <= DateTime.UtcNow)
-        {
-            return LinkRedirectResult.Expired();
         }
 
         return LinkRedirectResult.Success(link.TargetUrl);

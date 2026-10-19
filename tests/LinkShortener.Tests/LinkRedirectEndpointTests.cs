@@ -59,6 +59,16 @@ public sealed class LinkRedirectEndpointTests
                 "https://example.com/destination",
                 redirectResponse.Headers.Location?.AbsoluteUri);
 
+            const int concurrentAccessCount = 20;
+            var concurrentResponses = await Task.WhenAll(
+                Enumerable.Range(0, concurrentAccessCount)
+                    .Select(_ => client.GetAsync("/VALID1")));
+            Assert.All(concurrentResponses, response => Assert.Equal(HttpStatusCode.Found, response.StatusCode));
+            foreach (var response in concurrentResponses)
+            {
+                response.Dispose();
+            }
+
             using var notFoundResponse = await client.GetAsync("/MISSING1");
             Assert.Equal(HttpStatusCode.NotFound, notFoundResponse.StatusCode);
             Assert.Equal("application/problem+json", notFoundResponse.Content.Headers.ContentType?.MediaType);
@@ -66,6 +76,21 @@ public sealed class LinkRedirectEndpointTests
             using var expiredResponse = await client.GetAsync("/EXPRD1");
             Assert.Equal(HttpStatusCode.Gone, expiredResponse.StatusCode);
             Assert.Equal("application/problem+json", expiredResponse.Content.Headers.ContentType?.MediaType);
+
+            using var verificationScope = factory.Services.CreateScope();
+            var verificationDbContext = verificationScope.ServiceProvider
+                .GetRequiredService<LinkShortenerDbContext>();
+            var validLinkAccessCount = await verificationDbContext.Links
+                .Where(link => link.Code == "VALID1")
+                .Select(link => link.AccessCount)
+                .SingleAsync();
+            var expiredLinkAccessCount = await verificationDbContext.Links
+                .Where(link => link.Code == "EXPRD1")
+                .Select(link => link.AccessCount)
+                .SingleAsync();
+
+            Assert.Equal(concurrentAccessCount + 1, validLinkAccessCount);
+            Assert.Equal(0, expiredLinkAccessCount);
         }
         finally
         {

@@ -6,5 +6,10 @@ public interface ILinkRepository
 
     Task<Link?> FindByCodeAsync(string code, CancellationToken cancellationToken);
 
+    Task<bool> TryIncrementAccessCountAsync(
+        string code,
+        DateTime accessedAtUtc,
+        CancellationToken cancellationToken);
+
     Task AddAsync(Link link, CancellationToken cancellationToken);
 }
