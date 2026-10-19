@@ -12,6 +12,12 @@ public static class LinkEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        endpoints.MapGet("/{code}", RedirectAsync)
+            .WithName("RedirectLink")
+            .Produces(StatusCodes.Status302Found)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status410Gone);
+
         return endpoints;
     }
 
@@ -42,6 +48,29 @@ public static class LinkEndpoints
         var response = new CreateLinkResponse(shortUrl, code);
 
         return Results.Created(shortUrl, response);
+    }
+
+    private static async Task<IResult> RedirectAsync(
+        string code,
+        LinkService linkService,
+        CancellationToken cancellationToken)
+    {
+        var result = await linkService.GetRedirectAsync(code, cancellationToken);
+        if (result.Failure is LinkRedirectFailure.NotFound)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Link não encontrado");
+        }
+
+        if (result.Failure is LinkRedirectFailure.Expired)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status410Gone,
+                title: "Link expirado");
+        }
+
+        return Results.Redirect(result.TargetUrl!);
     }
 
     public sealed record CreateLinkRequest(string? TargetUrl, string? Code = null);

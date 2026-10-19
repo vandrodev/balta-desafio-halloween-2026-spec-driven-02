@@ -11,6 +11,11 @@ public sealed class LinkRepository(LinkShortenerDbContext dbContext) : ILinkRepo
         return dbContext.Links.AnyAsync(link => link.Code == code, cancellationToken);
     }
 
+    public Task<Link?> FindByCodeAsync(string code, CancellationToken cancellationToken)
+    {
+        return dbContext.Links.SingleOrDefaultAsync(link => link.Code == code, cancellationToken);
+    }
+
     public async Task AddAsync(Link link, CancellationToken cancellationToken)
     {
         dbContext.Links.Add(link);

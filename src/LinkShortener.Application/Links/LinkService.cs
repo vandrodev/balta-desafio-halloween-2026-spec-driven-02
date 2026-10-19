@@ -61,6 +61,24 @@ public sealed class LinkService(
         }
     }
 
+    public async Task<LinkRedirectResult> GetRedirectAsync(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var link = await linkRepository.FindByCodeAsync(code, cancellationToken);
+        if (link is null)
+        {
+            return LinkRedirectResult.NotFound();
+        }
+
+        if (link.ExpiresAtUtc is { } expiresAtUtc && expiresAtUtc <= DateTime.UtcNow)
+        {
+            return LinkRedirectResult.Expired();
+        }
+
+        return LinkRedirectResult.Success(link.TargetUrl);
+    }
+
     private static Link CreateLink(string code, string targetUrl)
     {
         return new Link
