@@ -15,23 +15,23 @@ Implementa a especificação do encurtador de links, respeitando a constituiçã
 - D-02: contador incrementado por UPDATE atômico no banco, e não lido e reescrito na aplicação, para atender RN-04 sob acesso concorrente
 - D-03: usar exclusivamente o alfabeto A-Z maiúsculo e os dígitos 1-9 para códigos automáticos e personalizados, conforme RF-02, RF-03 e RN-05; não há exclusão adicional de caracteres dentro desse conjunto
 - D-04: unicidade do código garantida por índice único no banco, além da checagem no serviço, porque a checagem sozinha tem corrida
-- D-05: caso a chave de gerenciamento de RF-09 seja mantida após a definição do contrato, armazená-la como hash, nunca em texto puro; não exigir essa chave para o endpoint público de total de acessos de RF-07
+- D-05: o endpoint protegido RF-09 usa uma chave aleatória de gerenciamento por link, gerada com 256 bits de entropia e codificada em Base64URL sem padding. A chave é devolvida uma única vez na criação e armazenada somente como hash SHA-256; nunca persistir a chave em texto puro. O endpoint público de RF-07 não exige essa chave.
 - D-06: manter T-10 (cache em memória dos links mais acessados) como otimização candidata. A implementação fica condicionada à definição de uma métrica, de uma linha de base e de um alvo de desempenho verificável na tarefa correspondente; não presumir benefício sem medição
 
 ## Modelo de dados
 Link:
 - Id, Code (único), TargetUrl, CreatedAtUtc, ExpiresAtUtc (nulo), AccessCount
-- ManagementKeyHash só será incluído se o contrato de RF-09 aprovado exigir chave de gerenciamento
+- ManagementKeyHash é o hash SHA-256 da chave de gerenciamento por link, incluído para suportar o contrato aprovado de RF-09; a chave em texto puro nunca é persistida
 
 ## Contratos
 - POST /api/links entrada: targetUrl, code opcional, expiresAtUtc opcional
-- POST /api/links saída: shortUrl, code, managementKey apenas se a chave for aprovada e necessária para RF-09
+- POST /api/links saída: shortUrl, code e managementKey em texto puro somente nesta resposta de criação
 - GET /{code} redireciona com 302, ou 404 se não existe, ou 410 se expirou
 - GET /api/links/{code}/stats retorna publicamente o total de acessos, sem exigir chave, conforme RF-07
-- Endpoint protegido para informações adicionais: rota, campos de resposta e autenticação pendentes de definição e aprovação em RF-09; não implementar até essa decisão
+- GET /api/links/{code}/details retorna targetUrl, createdAtUtc e expiresAtUtc; exige Authorization: Bearer <chave> com a chave de gerenciamento do link. Retorna 200 para chave válida, 401 para chave ausente ou inválida e 404 para código inexistente. Metadados de links expirados continuam consultáveis com chave válida.
 
 ## Riscos
 - Concorrência na criação de código próprio, mitigada por D-04
 - Crescimento da tabela de links sem política de limpeza, fora de escopo por ora
 - Cache pode adicionar complexidade e inconsistência; avaliar por medição antes de implementar
-- O contrato das informações adicionais protegidas permanece pendente até aprovação de RF-09
+- A chave de gerenciamento é um segredo de alta entropia retornado uma única vez; não é possível recuperá-la após a criação, apenas emitir uma nova chave por fluxo explicitamente aprovado

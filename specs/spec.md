@@ -25,7 +25,7 @@ Permitir que uma pessoa transforme uma URL longa em um link curto, compartilhe e
 - RF-06: o criador pode definir uma data de expiração para o link; a data e o limite de validade são interpretados em UTC, e o link permanece válido até o fim da data informada
 - RF-07: qualquer pessoa que conheça o código pode consultar o total de acessos do link
 - RF-08: os links e seus dados devem ser persistidos em banco de dados para que não se percam após reinício da aplicação
-- RF-09: deve existir um endpoint protegido para consultar informações adicionais sobre um link; o conjunto exato dessas informações e o contrato de acesso precisam ser definidos antes da implementação (decisão pendente, sem ampliar o escopo de implementação até aprovação).
+- RF-09: deve existir um endpoint protegido `GET /api/links/{code}/details` para consultar `targetUrl`, `createdAtUtc` e `expiresAtUtc` de um link. O acesso exige a chave de gerenciamento daquele link no cabeçalho `Authorization: Bearer <chave>`. A chave é gerada aleatoriamente com 256 bits de entropia, codificada em Base64URL sem padding, devolvida uma única vez na resposta de criação e armazenada somente como hash SHA-256. Chave ausente ou inválida retorna 401; código inexistente retorna 404. Links expirados continuam permitindo a consulta dos metadados com chave válida.
 
 ## Regras de negócio
 - RN-01: o código do link é único em todo o sistema
@@ -57,4 +57,4 @@ Permitir que uma pessoa transforme uma URL longa em um link curto, compartilhe e
 - Qualquer pessoa que conheça o código pode consultar o total de acessos
 - Após reiniciar a aplicação, os links persistidos no banco continuam funcionando
 - Os códigos automáticos e personalizados aceitam somente caracteres A-Z e 1-9, respeitando os comprimentos definidos em RF-02 e RF-03
-- O endpoint protegido de informações adicionais só poderá ser implementado após a definição e aprovação do conteúdo adicional e do contrato de acesso de RF-09
+- O endpoint protegido de RF-09 retorna `targetUrl`, `createdAtUtc` e `expiresAtUtc`, exige a chave de gerenciamento por link no Bearer, retorna 401 para chave ausente/inválida e 404 para código inexistente, e permite consultar metadados de links expirados com chave válida
