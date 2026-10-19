@@ -18,6 +18,11 @@ public static class LinkEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status410Gone);
 
+        endpoints.MapGet("/api/links/{code}/stats", GetStatisticsAsync)
+            .WithName("GetLinkStatistics")
+            .Produces<LinkStatisticsResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return endpoints;
     }
 
@@ -73,7 +78,25 @@ public static class LinkEndpoints
         return Results.Redirect(result.TargetUrl!);
     }
 
+    private static async Task<IResult> GetStatisticsAsync(
+        string code,
+        LinkService linkService,
+        CancellationToken cancellationToken)
+    {
+        var result = await linkService.GetStatisticsAsync(code, cancellationToken);
+        if (!result.Found)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Link não encontrado");
+        }
+
+        return Results.Ok(new LinkStatisticsResponse(result.AccessCount!.Value));
+    }
+
     public sealed record CreateLinkRequest(string? TargetUrl, string? Code = null);
 
     public sealed record CreateLinkResponse(string ShortUrl, string Code);
+
+    public sealed record LinkStatisticsResponse(long AccessCount);
 }

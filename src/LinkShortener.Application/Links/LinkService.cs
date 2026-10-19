@@ -82,13 +82,29 @@ public sealed class LinkService(
             return LinkRedirectResult.Expired();
         }
 
-        var link = await linkRepository.FindByCodeAsync(code, cancellationToken);
+        var link = await linkRepository.FindByCodeIfNotExpiredAsync(
+            code,
+            accessedAtUtc,
+            cancellationToken);
         if (link is null)
         {
-            return LinkRedirectResult.NotFound();
+            var existingLink = await linkRepository.FindByCodeAsync(code, cancellationToken);
+            return existingLink is null
+                ? LinkRedirectResult.NotFound()
+                : LinkRedirectResult.Expired();
         }
 
         return LinkRedirectResult.Success(link.TargetUrl);
+    }
+
+    public async Task<LinkStatisticsResult> GetStatisticsAsync(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var accessCount = await linkRepository.GetAccessCountByCodeAsync(code, cancellationToken);
+        return accessCount.HasValue
+            ? LinkStatisticsResult.Success(accessCount.Value)
+            : LinkStatisticsResult.NotFound();
     }
 
     private static Link CreateLink(string code, string targetUrl)

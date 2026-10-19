@@ -31,6 +31,27 @@ public sealed class LinkRepository(LinkShortenerDbContext dbContext) : ILinkRepo
         return updatedRows == 1;
     }
 
+    public Task<Link?> FindByCodeIfNotExpiredAsync(
+        string code,
+        DateTime accessedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.Links.SingleOrDefaultAsync(
+            link => link.Code == code
+                && (link.ExpiresAtUtc == null || link.ExpiresAtUtc > accessedAtUtc),
+            cancellationToken);
+    }
+
+    public async Task<long?> GetAccessCountByCodeAsync(
+        string code,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Links
+            .Where(link => link.Code == code)
+            .Select(link => (long?)link.AccessCount)
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Link link, CancellationToken cancellationToken)
     {
         dbContext.Links.Add(link);

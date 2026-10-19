@@ -11,5 +11,12 @@ public interface ILinkRepository
         DateTime accessedAtUtc,
         CancellationToken cancellationToken);
 
+    Task<Link?> FindByCodeIfNotExpiredAsync(
+        string code,
+        DateTime accessedAtUtc,
+        CancellationToken cancellationToken);
+
+    Task<long?> GetAccessCountByCodeAsync(string code, CancellationToken cancellationToken);
+
     Task AddAsync(Link link, CancellationToken cancellationToken);
 }
