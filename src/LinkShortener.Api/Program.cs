@@ -1,4 +1,5 @@
 using LinkShortener.Application.Links;
+using LinkShortener.Api.Endpoints;
 using LinkShortener.Infrastructure.Persistence;
 using LinkShortener.Infrastructure.Links;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,10 @@ builder.Services.AddDbContext<LinkShortenerDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddSingleton<IHostAddressResolver, SystemHostAddressResolver>();
 builder.Services.AddSingleton<IUrlAccessibilityChecker, PublicUrlAccessibilityChecker>();
+builder.Services.AddSingleton<LinkCodeGenerator>();
 builder.Services.AddTransient<TargetUrlValidator>();
+builder.Services.AddScoped<ILinkRepository, LinkRepository>();
+builder.Services.AddScoped<LinkService>();
 
 var app = builder.Build();
 
@@ -21,4 +25,8 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.Migrate();
 }
 
+app.MapLinkEndpoints();
+
 app.Run();
+
+public partial class Program { }
