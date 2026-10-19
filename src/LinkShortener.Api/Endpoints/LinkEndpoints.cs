@@ -9,7 +9,8 @@ public static class LinkEndpoints
         endpoints.MapPost("/api/links", CreateAsync)
             .WithName("CreateLink")
             .Produces<CreateLinkResponse>(StatusCodes.Status201Created)
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         return endpoints;
     }
@@ -20,11 +21,18 @@ public static class LinkEndpoints
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        var result = await linkService.CreateAsync(request.TargetUrl, cancellationToken);
+        var result = await linkService.CreateAsync(
+            request.TargetUrl,
+            request.Code,
+            cancellationToken);
         if (!result.Succeeded)
         {
+            var statusCode = result.Failure == CreateLinkFailure.CodeAlreadyExists
+                ? StatusCodes.Status409Conflict
+                : StatusCodes.Status400BadRequest;
+
             return Results.Problem(
-                statusCode: StatusCodes.Status400BadRequest,
+                statusCode: statusCode,
                 title: "Requisição inválida",
                 detail: result.ErrorMessage);
         }
@@ -36,7 +44,7 @@ public static class LinkEndpoints
         return Results.Created(shortUrl, response);
     }
 
-    public sealed record CreateLinkRequest(string? TargetUrl);
+    public sealed record CreateLinkRequest(string? TargetUrl, string? Code = null);
 
     public sealed record CreateLinkResponse(string ShortUrl, string Code);
 }

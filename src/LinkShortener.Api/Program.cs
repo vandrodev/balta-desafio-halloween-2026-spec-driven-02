@@ -14,6 +14,7 @@ builder.Services.AddSingleton<IHostAddressResolver, SystemHostAddressResolver>()
 builder.Services.AddSingleton<IUrlAccessibilityChecker, PublicUrlAccessibilityChecker>();
 builder.Services.AddSingleton<LinkCodeGenerator>();
 builder.Services.AddTransient<TargetUrlValidator>();
+builder.Services.AddSingleton<LinkCodeValidator>();
 builder.Services.AddScoped<ILinkRepository, LinkRepository>();
 builder.Services.AddScoped<LinkService>();
 
