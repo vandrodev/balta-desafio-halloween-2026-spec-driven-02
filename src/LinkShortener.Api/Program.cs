@@ -1,4 +1,6 @@
+using LinkShortener.Application.Links;
 using LinkShortener.Infrastructure.Persistence;
+using LinkShortener.Infrastructure.Links;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +9,9 @@ var connectionString = builder.Configuration.GetConnectionString("LinkShortener"
 
 builder.Services.AddDbContext<LinkShortenerDbContext>(options =>
     options.UseSqlite(connectionString));
+builder.Services.AddSingleton<IHostAddressResolver, SystemHostAddressResolver>();
+builder.Services.AddSingleton<IUrlAccessibilityChecker, PublicUrlAccessibilityChecker>();
+builder.Services.AddTransient<TargetUrlValidator>();
 
 var app = builder.Build();
 
