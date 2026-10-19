@@ -4,7 +4,8 @@ public enum CreateLinkFailure
 {
     InvalidTargetUrl,
     InvalidCode,
-    CodeAlreadyExists
+    CodeAlreadyExists,
+    InvalidExpirationDate
 }
 
 public sealed record CreateLinkResult(Link? Link, string? ErrorMessage, CreateLinkFailure? Failure)
@@ -21,4 +22,7 @@ public sealed record CreateLinkResult(Link? Link, string? ErrorMessage, CreateLi
 
     public static CreateLinkResult CodeAlreadyExists() =>
         new(null, "O código informado já está em uso.", CreateLinkFailure.CodeAlreadyExists);
+
+    public static CreateLinkResult InvalidExpirationDate(string errorMessage) =>
+        new(null, errorMessage, CreateLinkFailure.InvalidExpirationDate);
 }

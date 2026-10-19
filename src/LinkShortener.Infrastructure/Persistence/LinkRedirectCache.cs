@@ -21,7 +21,7 @@ public sealed class LinkRedirectCache : IDisposable
             return null;
         }
 
-        return cachedRedirect.ExpiresAtUtc is null || cachedRedirect.ExpiresAtUtc > accessedAtUtc
+        return cachedRedirect.ExpiresAtUtc is null || cachedRedirect.ExpiresAtUtc >= accessedAtUtc
             ? cachedRedirect
             : null;
     }

@@ -4,13 +4,23 @@ public sealed class LinkService(
     ILinkRepository linkRepository,
     LinkCodeGenerator codeGenerator,
     TargetUrlValidator targetUrlValidator,
-    LinkCodeValidator linkCodeValidator)
+    LinkCodeValidator linkCodeValidator,
+    LinkExpirationPolicy linkExpirationPolicy,
+    TimeProvider timeProvider)
 {
     public async Task<CreateLinkResult> CreateAsync(
         string? targetUrl,
         string? requestedCode = null,
+        DateTimeOffset? requestedExpiresAtUtc = null,
         CancellationToken cancellationToken = default)
     {
+        var currentUtcTime = timeProvider.GetUtcNow();
+        var expiration = linkExpirationPolicy.Validate(requestedExpiresAtUtc, currentUtcTime);
+        if (!expiration.IsValid)
+        {
+            return CreateLinkResult.InvalidExpirationDate(expiration.ErrorMessage!);
+        }
+
         var validation = await targetUrlValidator.ValidateAsync(targetUrl, cancellationToken);
         if (!validation.IsValid)
         {
@@ -32,7 +42,7 @@ public sealed class LinkService(
 
             try
             {
-                var link = CreateLink(requestedCode, targetUrl!);
+                var link = CreateLink(requestedCode, targetUrl!, expiration.ExpiresAtUtc, currentUtcTime);
                 await linkRepository.AddAsync(link, cancellationToken);
                 return CreateLinkResult.Success(link);
             }
@@ -50,7 +60,7 @@ public sealed class LinkService(
 
             try
             {
-                var link = CreateLink(code, targetUrl!);
+                var link = CreateLink(code, targetUrl!, expiration.ExpiresAtUtc, currentUtcTime);
                 await linkRepository.AddAsync(link, cancellationToken);
                 return CreateLinkResult.Success(link);
             }
@@ -65,7 +75,7 @@ public sealed class LinkService(
         string code,
         CancellationToken cancellationToken = default)
     {
-        var accessedAtUtc = DateTime.UtcNow;
+        var accessedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
         var accessCountIncremented = await linkRepository.TryIncrementAccessCountAsync(
             code,
             accessedAtUtc,
@@ -107,13 +117,18 @@ public sealed class LinkService(
             : LinkStatisticsResult.NotFound();
     }
 
-    private static Link CreateLink(string code, string targetUrl)
+    private static Link CreateLink(
+        string code,
+        string targetUrl,
+        DateTime? expiresAtUtc,
+        DateTimeOffset createdAtUtc)
     {
         return new Link
         {
             Code = code,
             TargetUrl = targetUrl,
-            CreatedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = createdAtUtc.UtcDateTime,
+            ExpiresAtUtc = expiresAtUtc,
             AccessCount = 0
         };
     }

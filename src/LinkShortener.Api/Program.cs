@@ -16,6 +16,8 @@ builder.Services.AddSingleton<IUrlAccessibilityChecker, PublicUrlAccessibilityCh
 builder.Services.AddSingleton<LinkCodeGenerator>();
 builder.Services.AddTransient<TargetUrlValidator>();
 builder.Services.AddSingleton<LinkCodeValidator>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<LinkExpirationPolicy>();
 builder.Services.AddScoped<ILinkRepository, LinkRepository>();
 builder.Services.AddScoped<LinkService>();
 

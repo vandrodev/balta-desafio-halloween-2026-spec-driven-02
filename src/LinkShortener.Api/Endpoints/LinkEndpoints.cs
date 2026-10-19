@@ -35,6 +35,7 @@ public static class LinkEndpoints
         var result = await linkService.CreateAsync(
             request.TargetUrl,
             request.Code,
+            request.ExpiresAtUtc,
             cancellationToken);
         if (!result.Succeeded)
         {
@@ -94,7 +95,10 @@ public static class LinkEndpoints
         return Results.Ok(new LinkStatisticsResponse(result.AccessCount!.Value));
     }
 
-    public sealed record CreateLinkRequest(string? TargetUrl, string? Code = null);
+    public sealed record CreateLinkRequest(
+        string? TargetUrl,
+        string? Code = null,
+        DateTimeOffset? ExpiresAtUtc = null);
 
     public sealed record CreateLinkResponse(string ShortUrl, string Code);
 

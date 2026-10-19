@@ -25,7 +25,7 @@ public sealed class LinkRepository(
     {
         var updatedRows = await dbContext.Links
             .Where(link => link.Code == code
-                && (link.ExpiresAtUtc == null || link.ExpiresAtUtc > accessedAtUtc))
+                && (link.ExpiresAtUtc == null || link.ExpiresAtUtc >= accessedAtUtc))
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(link => link.AccessCount, link => link.AccessCount + 1),
                 cancellationToken);
@@ -94,7 +94,7 @@ public sealed class LinkRepository(
 
         var link = await dbContext.Links.SingleOrDefaultAsync(
             candidate => candidate.Code == code
-                && (candidate.ExpiresAtUtc == null || candidate.ExpiresAtUtc > accessedAtUtc),
+                && (candidate.ExpiresAtUtc == null || candidate.ExpiresAtUtc >= accessedAtUtc),
             cancellationToken);
         if (link is null)
         {
