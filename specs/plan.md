@@ -10,6 +10,37 @@ Implementa a especificação do encurtador de links, respeitando a constituiçã
 - Endpoint só valida entrada, chama o serviço e traduz o resultado em resposta
 - Toda regra de negócio deve ter teste unitário; todo endpoint deve ter teste de integração de caminho feliz, conforme a Constituição
 
+### Organização por responsabilidade
+Manter os projetos atuais e organizar os componentes dentro deles por responsabilidade, sem criar projetos, camadas ou abstrações que não atendam a uma necessidade concreta.
+
+- `LinkShortener.Api`
+  - `Endpoints/`: binding HTTP, chamada aos serviços de aplicação e tradução de resultados para respostas HTTP; não contém regras de negócio nem acesso direto a banco.
+  - `Contracts/`: DTOs de entrada e saída próprios do protocolo HTTP.
+  - `Program.cs`: composição da aplicação e mapeamento dos endpoints; delega o registro e a inicialização da infraestrutura a métodos fornecidos por Infrastructure.
+- `LinkShortener.Application`
+  - `Domain/Links/`: entidade `Link` e regras puras do domínio, sem dependência de API, EF Core ou Infrastructure. Subpastas devem separar regras e tipos de resultado somente quando isso melhorar a localização dos componentes.
+  - `Links/Services/`: serviços que coordenam casos de uso e validadores que dependem de portas ou integrações.
+  - `Links/Contracts/`: contratos de fronteira necessários para substituir integrações ou isolar testes, incluindo os contratos de repositório e acessibilidade de URL.
+  - `Links/Results/`: resultados dos casos de uso consumidos pela API.
+- `LinkShortener.Infrastructure`
+  - `Persistence/`: DbContext, mapeamentos, migrações e implementação de repositório.
+  - `Links/`: integrações externas usadas pela aplicação e suas implementações.
+  - Ponto de composição: registra os serviços concretos, configura SQLite e encapsula a aplicação de migrações de inicialização, preservando o comportamento atual sem expor esses detalhes em `Program.cs`.
+- `LinkShortener.Tests`
+  - Organizar testes por tipo e responsabilidade (unidade de domínio/aplicação, integração HTTP e persistência), sem exigir projetos de teste adicionais.
+
+As localizações acima definem responsabilidades, não exigem a criação de cada subpasta se não houver componentes para ela. Durante a migração, atualizar namespaces e referências junto com cada grupo movido.
+
+### Regras de dependência e abstrações
+- `Domain` não depende de frameworks de aplicação, HTTP, persistência ou serviços externos.
+- `Application` pode depender de `Domain`, mas não de API, Infrastructure, EF Core ou SQLite.
+- `Infrastructure` implementa contratos da aplicação e pode depender de Application e dos provedores/frameworks necessários à persistência e às integrações.
+- API pode depender de Application para atender requisições e de Infrastructure somente no ponto de composição da aplicação. Handlers de endpoint dependem de serviços/contratos da aplicação, nunca de implementações concretas de persistência.
+- Testes podem referenciar os projetos necessários para testar o comportamento integrado.
+- Criar uma interface somente quando existir uma fronteira cuja implementação precise ser substituível ou isolada em testes. Não criar interfaces automaticamente para cada classe ou serviço.
+- Não adicionar testes ou ferramentas de conformidade arquitetural dedicados nesta refatoração; validar os limites por revisão das referências entre projetos, build e testes existentes.
+- A refatoração é estrutural: preservar contratos HTTP, regras, persistência e comportamento. Uma funcionalidade não implementada continua fora do escopo e não deve ser criada como parte da reorganização.
+
 ## Decisões
 - D-01: SQLite como armazenamento, porque RF-08 exige persistência entre reinícios
 - D-02: contador incrementado por UPDATE atômico no banco, e não lido e reescrito na aplicação, para atender RN-04 sob acesso concorrente
