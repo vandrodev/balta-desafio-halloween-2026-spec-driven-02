@@ -1,4 +1,4 @@
-using LinkShortener.Application.Links;
+using LinkShortener.Application.Domain.Links;
 using Microsoft.EntityFrameworkCore;
 
 namespace LinkShortener.Infrastructure.Persistence;

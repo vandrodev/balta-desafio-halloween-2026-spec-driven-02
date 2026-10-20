@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Net.Http;
-using LinkShortener.Application.Links;
+using LinkShortener.Application.Links.Contracts;
 
 namespace LinkShortener.Infrastructure.Links;
 

@@ -1,4 +1,6 @@
-using LinkShortener.Application.Links;
+using LinkShortener.Api.Contracts;
+using LinkShortener.Application.Links.Results;
+using LinkShortener.Application.Links.Services;
 
 namespace LinkShortener.Api.Endpoints;
 
@@ -95,12 +97,4 @@ public static class LinkEndpoints
         return Results.Ok(new LinkStatisticsResponse(result.AccessCount!.Value));
     }
 
-    public sealed record CreateLinkRequest(
-        string? TargetUrl,
-        string? Code = null,
-        DateTimeOffset? ExpiresAtUtc = null);
-
-    public sealed record CreateLinkResponse(string ShortUrl, string Code);
-
-    public sealed record LinkStatisticsResponse(long AccessCount);
 }

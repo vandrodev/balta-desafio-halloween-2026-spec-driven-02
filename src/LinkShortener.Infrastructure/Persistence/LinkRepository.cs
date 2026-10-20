@@ -1,4 +1,5 @@
-using LinkShortener.Application.Links;
+using LinkShortener.Application.Domain.Links;
+using LinkShortener.Application.Links.Contracts;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 

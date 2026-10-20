@@ -20,7 +20,7 @@ namespace LinkShortener.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
-            modelBuilder.Entity("LinkShortener.Application.Links.Link", b =>
+            modelBuilder.Entity("LinkShortener.Application.Domain.Links.Link", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
